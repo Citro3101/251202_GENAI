@@ -1,0 +1,75 @@
+:root {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #f4f6fb;
+  background-color: #030711;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #030711;
+  color: #f4f6fb;
+  overflow: hidden;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pane-card {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  max-width: 340px;
+  padding: 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 20, 0.78);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 35px rgba(4, 6, 16, 0.9);
+}
+
+.metrics-card {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(8, 10, 20, 0.82);
+  backdrop-filter: blur(12px);
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.metrics-card span {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .pane-card {
+    left: auto;
+    right: 1rem;
+    max-width: 260px;
+  }
+
+  .metrics-card {
+    left: 1rem;
+    right: 1rem;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}
