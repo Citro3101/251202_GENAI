@@ -9,8 +9,9 @@ const easingMap = {
 
 export const easingOptions = Object.keys(easingMap);
 
-const DEFAULT_SIDES = 36;
 const TOP_TAPER = 0.92;
+const DEFAULT_GAP_RATIO = 0.4;
+const BASE_CLEARANCE = 20; // lift tower above ground grid
 
 export function createTower(params) {
   const group = new THREE.Group();
@@ -22,36 +23,30 @@ export function createTower(params) {
   const twistMax = params.twistMax;
   const scaleEase = getEasingFn(params.scaleEasing);
   const twistEase = getEasingFn(params.twistEasing);
-  const colorBottom = new THREE.Color(params.bottomColor);
-  const colorTop = new THREE.Color(params.topColor);
   const floorHeight = totalHeight / floors;
-  const slabHeight = floorHeight * 0.82;
+  const gapRatio = THREE.MathUtils.clamp(
+    typeof params.slabGap === 'number' ? params.slabGap : DEFAULT_GAP_RATIO,
+    0,
+    0.95,
+  );
+  const slabHeight = floorHeight * (1 - gapRatio);
+  const gapHeight = floorHeight - slabHeight;
 
-  const material = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    metalness: 0.15,
-    roughness: 0.65,
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    wireframe: true,
   });
 
   for (let i = 0; i < floors; i += 1) {
     const normalizedCenter = floors === 1 ? 0 : i / (floors - 1 || 1);
-    const normalizedBottom = i / floors;
-    const normalizedTop = (i + 1) / floors;
 
     const radius = THREE.MathUtils.lerp(radiusMin, radiusMax, scaleEase(normalizedCenter));
     const twist = THREE.MathUtils.lerp(twistMin, twistMax, twistEase(normalizedCenter));
 
-    const geo = buildSlabGeometry({
+    const geo = buildSquareSlabGeometry({
       height: slabHeight,
       topRadius: radius * TOP_TAPER,
       bottomRadius: radius,
-      segments: DEFAULT_SIDES,
-    });
-
-    applyGradient(geo, {
-      bottom: colorBottom.clone().lerp(colorTop, normalizedBottom),
-      top: colorBottom.clone().lerp(colorTop, normalizedTop),
-      height: slabHeight,
     });
 
     const mesh = new THREE.Mesh(geo, material);
@@ -62,6 +57,8 @@ export function createTower(params) {
 
   group.userData.sharedMaterial = material;
   group.userData.meta = { floors, totalHeight, floorHeight };
+  const clearanceOffset = totalHeight / 2 - gapHeight / 2 + BASE_CLEARANCE;
+  group.position.y = clearanceOffset;
   return group;
 }
 
@@ -94,23 +91,24 @@ function getEasingFn(name) {
   return easingMap[name] || easingMap.linear;
 }
 
-function buildSlabGeometry({ height, topRadius, bottomRadius, segments }) {
-  return new THREE.CylinderGeometry(topRadius, bottomRadius, height, segments, 1, false);
-}
+function buildSquareSlabGeometry({ height, topRadius, bottomRadius }) {
+  const width = bottomRadius * 2;
+  const depth = bottomRadius * 2;
+  const geometry = new THREE.BoxGeometry(width, height, depth, 1, 1, 1);
 
-function applyGradient(geometry, { bottom, top, height }) {
-  const position = geometry.attributes.position;
-  const colorAttribute = new Float32Array(position.count * 3);
-  const working = new THREE.Color();
-
-  for (let i = 0; i < position.count; i += 1) {
-    const y = position.getY(i);
-    const t = THREE.MathUtils.clamp((y + height / 2) / height, 0, 1);
-    working.copy(bottom).lerp(top, t);
-    colorAttribute[i * 3 + 0] = working.r;
-    colorAttribute[i * 3 + 1] = working.g;
-    colorAttribute[i * 3 + 2] = working.b;
+  if (topRadius !== bottomRadius) {
+    const taperFactor = topRadius / bottomRadius;
+    const position = geometry.attributes.position;
+    for (let i = 0; i < position.count; i += 1) {
+      const y = position.getY(i);
+      if (y > 0) {
+        // Scale only the top vertices so each box becomes a tapered slab.
+        position.setX(i, position.getX(i) * taperFactor);
+        position.setZ(i, position.getZ(i) * taperFactor);
+      }
+    }
+    position.needsUpdate = true;
   }
 
-  geometry.setAttribute('color', new THREE.BufferAttribute(colorAttribute, 3));
+  return geometry;
 }

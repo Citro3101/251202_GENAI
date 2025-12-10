@@ -11,14 +11,13 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05060a);
+scene.background = new THREE.Color(0xf3dcc5);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(80, 90, 160);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.target.set(0, 60, 0);
 
 scene.add(new THREE.AmbientLight(0xbcc4d6, 0.7));
 const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -28,8 +27,18 @@ const fillLight = new THREE.DirectionalLight(0x99a8ff, 0.4);
 fillLight.position.set(-80, 60, -40);
 scene.add(fillLight);
 
-const grid = new THREE.GridHelper(500, 20, 0x1f2933, 0x121820);
+const grid = new THREE.GridHelper(500, 20, 0xc4a382, 0xd9b596);
 grid.position.y = -1;
+const fadeGridMaterial = (material) => {
+  material.transparent = true;
+  material.opacity = 0.12;
+  material.depthWrite = false;
+};
+if (Array.isArray(grid.material)) {
+  grid.material.forEach(fadeGridMaterial);
+} else {
+  fadeGridMaterial(grid.material);
+}
 scene.add(grid);
 
 const pivot = new THREE.Group();
@@ -47,6 +56,7 @@ app.appendChild(paneContainer);
 const params = {
   floors: 28,
   totalHeight: 160,
+  slabGap: 0.4,
   radiusMin: 4,
   radiusMax: 18,
   twistMin: 0,
@@ -64,8 +74,12 @@ const pane = new Pane({
   container: paneContainer,
 });
 
+controls.target.set(0, params.totalHeight * 0.35, 0);
+controls.update();
+
 pane.addBinding(params, 'floors', { min: 3, max: 150, step: 1 });
 pane.addBinding(params, 'totalHeight', { min: 20, max: 500, step: 1, label: 'height' });
+pane.addBinding(params, 'slabGap', { min: 0, max: 0.85, step: 0.01, label: 'slab gap' });
 
 const scaleFolder = pane.addFolder({ title: 'Scaling' });
 const radiusMinBinding = scaleFolder.addBinding(params, 'radiusMin', {
